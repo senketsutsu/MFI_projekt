@@ -4,6 +4,53 @@ import numpy as np
 
 Edge = Tuple[str, str]
 
+def qr_factorization(Cov):
+    A = Cov.astype(float).copy()
+    m, n = A.shape
+    Q = np.zeros((m, n))
+    R = np.zeros((n, n))
+    S = np.zeros((n, n))
+    Loop = 1
+    iter = 0
+
+    while(Loop == 1):
+        Loop = 0
+
+        for j in range(m):
+
+            v = A[:, j].copy() 
+            R[j, j] = np.sqrt(np.sum(v**2))
+
+            if R[j, j] != 0:
+                for i in range(m):
+                    Q[i, j] = v[i] / R[j, j]
+
+            for k in range(j, m):
+                R[j, k] = np.sum(Q[:, j] * A[:, k])
+
+                for i in range(m):
+                    A[i, k] = A[i, k] - (Q[i, j] * R[j, k])  
+
+        if iter == 0:
+            S = Q.copy()
+        else:
+            for j in range(m):
+                for k in range(m):
+                    S[j, k] = np.sum(Temp[j, :] * Q[:, k])
+
+        Temp = S.copy()
+
+        for j in range(m):
+            for k in range(m):
+                A[j, k] = np.sum(R[j, :] * Q[:, k])
+
+                if ((j > k) and (abs(A[j, k]) > 1e-10)):  
+                    Loop = 1
+
+        iter += 1
+
+    return Q, R, S
+
 @dataclass
 class PageRankStep:
     iteration: int
