@@ -10,7 +10,7 @@
 - tabela wszystkich iteracji,
 - możliwość przełączania się między przykładowymi grafami.
 
-##Uruchomienie
+## Uruchomienie
 
 ```bash
 uv sync
