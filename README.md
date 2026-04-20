@@ -10,7 +10,8 @@
 - tabela wszystkich iteracji,
 - możliwość przełączania się między przykładowymi grafami.
 
-## Instalacja
+##Uruchomienie
 
 ```bash
 uv sync
+python app.py
