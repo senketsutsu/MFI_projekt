@@ -22,5 +22,6 @@ python app.py
 Przed odpaleniem aplikacji:
 ```bash
 curl -Ls https://astral.sh/uv/install.sh | sh
+source $HOME/.local/bin/env
 pip install -r requirements.txt
 ```
