@@ -2,7 +2,7 @@ import dash
 import numpy as np
 from dash import Input, Output, State, html
 from data.example_graphs import EXAMPLE_GRAPHS
-from lib.core.pagerank import build_nodes, build_transition_matrix, pagerank_iterations
+from lib.core.pagerank import build_nodes, build_transition_matrix, compare_with_networkx, pagerank_iterations
 from lib.visuals.figures import build_bar_figure, build_convergence_figure, build_network_figure
 
 def steps_to_table_data(nodes, steps):
@@ -28,22 +28,24 @@ def register_callbacks(app):
         Input("graph-selector", "value"),
         Input("damping-slider", "value"),
         Input("max-iter-slider", "value"),
+        Input("tol-slider", "value"),
         State("current-step", "data"),
         prevent_initial_call=True,
     )
-    def update_step(prev_clicks, next_clicks, reset_clicks, graph_name, damping, max_iter, current_step):
+    def update_step(prev_clicks, next_clicks, reset_clicks, graph_name, damping, max_iter, tol_power, current_step):
         ctx = dash.callback_context
         if not ctx.triggered:
             return 0
 
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        tol = 10 ** (-tol_power)
 
         nodes = build_nodes(EXAMPLE_GRAPHS[graph_name])
         matrix = build_transition_matrix(nodes, EXAMPLE_GRAPHS[graph_name])
-        steps = pagerank_iterations(matrix, damping=damping, max_iter=max_iter)
+        steps = pagerank_iterations(matrix, damping=damping, max_iter=max_iter, tol=tol)
         max_step = len(steps) - 1
 
-        if trigger_id in {"graph-selector", "damping-slider", "max-iter-slider", "reset-button"}:
+        if trigger_id in {"graph-selector", "damping-slider", "max-iter-slider", "tol-slider", "reset-button"}:
             return 0
         if trigger_id == "prev-button":
             return max(0, current_step - 1)
@@ -61,22 +63,49 @@ def register_callbacks(app):
         Input("graph-selector", "value"),
         Input("damping-slider", "value"),
         Input("max-iter-slider", "value"),
+        Input("tol-slider", "value"),
         Input("current-step", "data"),
     )
-    def update_visuals(graph_name, damping, max_iter, current_step):
+    def update_visuals(graph_name, damping, max_iter, tol_power, current_step):
         edges = EXAMPLE_GRAPHS[graph_name]
         nodes = build_nodes(edges)
         matrix = build_transition_matrix(nodes, edges)
-        steps = pagerank_iterations(matrix, damping=damping, max_iter=max_iter)
+        tol = 10 ** (-tol_power)
+        steps = pagerank_iterations(matrix, damping=damping, max_iter=max_iter, tol=tol)
 
         safe_step = min(current_step, len(steps) - 1)
         current = steps[safe_step]
+        final_step = steps[-1]
+        converged = final_step.diff < tol
+
+        comparison = compare_with_networkx(
+            nodes=nodes,
+            edges=edges,
+            vector=final_step.vector,
+            damping=damping,
+            max_iter=max_iter,
+            tol=tol,
+        )
+
+        comparison_block = []
+        if comparison.error is None:
+            comparison_block = [
+                html.Span(f" | zgodność z NetworkX L1: {comparison.l1_diff:.8e}"),
+                html.Span(f" | max|Δ|: {comparison.max_abs_diff:.8e}"),
+            ]
+        else:
+            comparison_block = [
+                html.Span(f" | porównanie z NetworkX niedostępne: {comparison.error}"),
+            ]
 
         info = html.Div(
             [
                 html.Strong(f"Aktualna iteracja: {current.iteration}"),
                 html.Span(f" | różnica względem poprzedniej: {current.diff:.8f}"),
                 html.Span(f" | suma ranków: {np.sum(current.vector):.6f}"),
+                html.Span(f" | iteracje wykonane: {len(steps) - 1}"),
+                html.Span(f" | zbieżność: {'TAK' if converged else 'NIE'} (tol={tol:.0e})"),
+                *comparison_block,
             ]
         )
 

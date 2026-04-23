@@ -12,7 +12,7 @@ def create_layout():
             html.Div(
                 style={
                     "display": "grid",
-                    "gridTemplateColumns": "1fr 1fr 1fr",
+                    "gridTemplateColumns": "1fr 1fr 1fr 1fr",
                     "gap": "16px",
                     "marginBottom": "20px",
                 },
@@ -47,10 +47,23 @@ def create_layout():
                             dcc.Slider(
                                 id="max-iter-slider",
                                 min=1,
-                                max=30,
+                                max=100,
                                 step=1,
-                                value=10,
-                                marks={i: str(i) for i in range(1, 31, 5)},
+                                value=30,
+                                marks={1: "1", 10: "10", 30: "30", 60: "60", 100: "100"},
+                            ),
+                        ]
+                    ),
+                    html.Div(
+                        children=[
+                            html.Label("Dokładność (tol = 10^-x):"),
+                            dcc.Slider(
+                                id="tol-slider",
+                                min=3,
+                                max=10,
+                                step=1,
+                                value=6,
+                                marks={i: f"1e-{i}" for i in range(3, 11)},
                             ),
                         ]
                     ),
