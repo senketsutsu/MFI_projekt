@@ -16,7 +16,10 @@ def build_network_figure(nodes: List[str], edges: List[Edge], ranks: np.ndarray,
     graph.add_nodes_from(nodes)
     graph.add_edges_from(edges)
 
-    pos = nx.spring_layout(graph, seed=42)
+    if len(nodes) <= 40:
+        pos = nx.spring_layout(graph, seed=42)
+    else:
+        pos = nx.kamada_kawai_layout(graph)
 
     edge_x = []
     edge_y = []
@@ -32,7 +35,7 @@ def build_network_figure(nodes: List[str], edges: List[Edge], ranks: np.ndarray,
         y=edge_y,
         mode="lines",
         hoverinfo="none",
-        line=dict(width=1),
+        line=dict(width=0.7, color="#98a2b3"),
         name="Krawędzie",
     )
 
@@ -58,7 +61,10 @@ def build_network_figure(nodes: List[str], edges: List[Edge], ranks: np.ndarray,
         hovertext=node_text,
         marker=dict(
             size=node_sizes,
+            color=ranks,
+            colorscale="Blues",
             line=dict(width=1),
+            colorbar=dict(title="PR", thickness=12),
         ),
         name="Węzły",
     )
@@ -68,28 +74,42 @@ def build_network_figure(nodes: List[str], edges: List[Edge], ranks: np.ndarray,
         title="Graf i aktualne wartości PageRank",
         showlegend=False,
         margin=dict(l=20, r=20, t=50, b=20),
+        plot_bgcolor="#ffffff",
         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
     )
     return fig
 
-def build_bar_figure(nodes: List[str], ranks: np.ndarray) -> go.Figure:
+
+def build_bar_figure(nodes: List[str], ranks: np.ndarray, top_n: int = 20) -> go.Figure:
     """
     Buduje wykres słupkowy aktualnego wektora PageRank.
     """
+    order = np.argsort(ranks)[::-1]
+    if len(nodes) > top_n:
+        order = order[:top_n]
+
+    sorted_nodes = [nodes[i] for i in order]
+    sorted_ranks = ranks[order]
+
     fig = go.Figure(
         data=[
             go.Bar(
-                x=nodes,
-                y=ranks,
-                text=[f"{value:.4f}" for value in ranks],
+                x=sorted_nodes,
+                y=sorted_ranks,
+                text=[f"{value:.4f}" for value in sorted_ranks],
                 textposition="outside",
+                marker=dict(color="#2563eb"),
             )
         ]
     )
 
+    title = "Aktualny wektor PageRank"
+    if len(nodes) > top_n:
+        title = f"Aktualny wektor PageRank (Top {top_n} z {len(nodes)} węzłów)"
+
     fig.update_layout(
-        title="Aktualny wektor PageRank",
+        title=title,
         xaxis_title="Węzeł",
         yaxis_title="Wartość",
         margin=dict(l=20, r=20, t=50, b=20),
