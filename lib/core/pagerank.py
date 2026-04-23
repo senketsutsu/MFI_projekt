@@ -1,61 +1,22 @@
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 import numpy as np
 
 Edge = Tuple[str, str]
-
-def qr_factorization(Cov):
-    A = Cov.astype(float).copy()
-    m, n = A.shape
-    Q = np.zeros((m, n))
-    R = np.zeros((n, n))
-    S = np.zeros((n, n))
-    Loop = 1
-    iter = 0
-
-    while(Loop == 1):
-        Loop = 0
-
-        for j in range(m):
-
-            v = A[:, j].copy() 
-            R[j, j] = np.sqrt(np.sum(v**2))
-
-            if R[j, j] != 0:
-                for i in range(m):
-                    Q[i, j] = v[i] / R[j, j]
-
-            for k in range(j, m):
-                R[j, k] = np.sum(Q[:, j] * A[:, k])
-
-                for i in range(m):
-                    A[i, k] = A[i, k] - (Q[i, j] * R[j, k])  
-
-        if iter == 0:
-            S = Q.copy()
-        else:
-            for j in range(m):
-                for k in range(m):
-                    S[j, k] = np.sum(Temp[j, :] * Q[:, k])
-
-        Temp = S.copy()
-
-        for j in range(m):
-            for k in range(m):
-                A[j, k] = np.sum(R[j, :] * Q[:, k])
-
-                if ((j > k) and (abs(A[j, k]) > 1e-10)):  
-                    Loop = 1
-
-        iter += 1
-
-    return Q, R, S
 
 @dataclass
 class PageRankStep:
     iteration: int
     vector: np.ndarray
     diff: float
+
+
+@dataclass
+class PageRankComparison:
+    l1_diff: float
+    max_abs_diff: float
+    reference_vector: Optional[np.ndarray]
+    error: Optional[str] = None
 
 def build_nodes(edges: List[Edge]) -> List[str]:
     """
@@ -145,3 +106,40 @@ def compute_pagerank_from_edges(edges: List[Edge], damping: float = 0.85, max_it
         tol=tol,
     )
     return nodes, matrix, steps
+
+
+def compare_with_networkx(
+    nodes: List[str],
+    edges: List[Edge],
+    vector: np.ndarray,
+    damping: float,
+    max_iter: int,
+    tol: float,
+) -> PageRankComparison:
+    """
+    Porównuje wektor PageRank z referencyjnym wynikiem z networkx.pagerank.
+    """
+    try:
+        import networkx as nx
+
+        graph = nx.DiGraph()
+        graph.add_nodes_from(nodes)
+        graph.add_edges_from(edges)
+
+        nx_rank = nx.pagerank(graph, alpha=damping, max_iter=max_iter, tol=tol)
+        reference_vector = np.array([nx_rank[node] for node in nodes], dtype=float)
+
+        diff_vector = np.abs(reference_vector - vector)
+        return PageRankComparison(
+            l1_diff=float(np.sum(diff_vector)),
+            max_abs_diff=float(np.max(diff_vector)),
+            reference_vector=reference_vector,
+            error=None,
+        )
+    except Exception as exc:
+        return PageRankComparison(
+            l1_diff=float("nan"),
+            max_abs_diff=float("nan"),
+            reference_vector=None,
+            error=str(exc),
+        )
