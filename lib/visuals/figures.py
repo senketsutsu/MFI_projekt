@@ -1,0 +1,141 @@
+from typing import List, Tuple
+import networkx as nx
+import numpy as np
+import plotly.graph_objects as go
+
+from lib.core.pagerank import PageRankStep
+
+Edge = Tuple[str, str]
+
+def build_network_figure(nodes: List[str], edges: List[Edge], ranks: np.ndarray,) -> go.Figure:
+    """
+    Buduje wizualizację grafu skierowanego z aktualnymi wartościami PageRank.
+    Rozmiar węzła zależy od jego rankingu.
+    """
+    graph = nx.DiGraph()
+    graph.add_nodes_from(nodes)
+    graph.add_edges_from(edges)
+
+    if len(nodes) <= 40:
+        pos = nx.spring_layout(graph, seed=42)
+    else:
+        pos = nx.kamada_kawai_layout(graph)
+
+    edge_x = []
+    edge_y = []
+
+    for source, target in graph.edges():
+        x0, y0 = pos[source]
+        x1, y1 = pos[target]
+        edge_x.extend([x0, x1, None])
+        edge_y.extend([y0, y1, None])
+
+    edge_trace = go.Scatter(
+        x=edge_x,
+        y=edge_y,
+        mode="lines",
+        hoverinfo="none",
+        line=dict(width=0.7, color="#98a2b3"),
+        name="Krawędzie",
+    )
+
+    node_x = []
+    node_y = []
+    node_text = []
+    node_sizes = []
+
+    for i, node in enumerate(nodes):
+        x, y = pos[node]
+        node_x.append(x)
+        node_y.append(y)
+        node_text.append(f"{node}<br>PageRank = {ranks[i]:.4f}")
+        node_sizes.append(25 + ranks[i] * 120)
+
+    node_trace = go.Scatter(
+        x=node_x,
+        y=node_y,
+        mode="markers+text",
+        text=nodes,
+        textposition="top center",
+        hoverinfo="text",
+        hovertext=node_text,
+        marker=dict(
+            size=node_sizes,
+            color=ranks,
+            colorscale="Blues",
+            line=dict(width=1),
+            colorbar=dict(title="PR", thickness=12),
+        ),
+        name="Węzły",
+    )
+
+    fig = go.Figure(data=[edge_trace, node_trace])
+    fig.update_layout(
+        title="Graf i aktualne wartości PageRank",
+        showlegend=False,
+        margin=dict(l=20, r=20, t=50, b=20),
+        plot_bgcolor="#ffffff",
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+    )
+    return fig
+
+
+def build_bar_figure(nodes: List[str], ranks: np.ndarray, top_n: int = 20) -> go.Figure:
+    """
+    Buduje wykres słupkowy aktualnego wektora PageRank.
+    """
+    order = np.argsort(ranks)[::-1]
+    if len(nodes) > top_n:
+        order = order[:top_n]
+
+    sorted_nodes = [nodes[i] for i in order]
+    sorted_ranks = ranks[order]
+
+    fig = go.Figure(
+        data=[
+            go.Bar(
+                x=sorted_nodes,
+                y=sorted_ranks,
+                text=[f"{value:.4f}" for value in sorted_ranks],
+                textposition="outside",
+                marker=dict(color="#2563eb"),
+            )
+        ]
+    )
+
+    title = "Aktualny wektor PageRank"
+    if len(nodes) > top_n:
+        title = f"Aktualny wektor PageRank (Top {top_n} z {len(nodes)} węzłów)"
+
+    fig.update_layout(
+        title=title,
+        xaxis_title="Węzeł",
+        yaxis_title="Wartość",
+        margin=dict(l=20, r=20, t=50, b=20),
+    )
+    return fig
+
+def build_convergence_figure(steps: List[PageRankStep]) -> go.Figure:
+    """
+    Buduje wykres zbieżności metody iteracyjnej:
+    ||r(k) - r(k-1)||_1
+    """
+    fig = go.Figure(
+        data=[
+            go.Scatter(
+                x=[step.iteration for step in steps],
+                y=[step.diff for step in steps],
+                mode="lines+markers",
+                name="Różnica L1",
+            )
+        ]
+    )
+
+    fig.update_layout(
+        title="Zbieżność metody iteracyjnej",
+        xaxis_title="Iteracja",
+        yaxis_title="||r(k) - r(k-1)||₁",
+        margin=dict(l=20, r=20, t=50, b=20),
+    )
+    return fig
