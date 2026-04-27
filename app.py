@@ -6,7 +6,7 @@ from ui.callbacks import register_callbacks
 
 app = dash.Dash(
     __name__,
-    external_stylesheets=[dbc.themes.FLATLY],
+    external_stylesheets=[dbc.themes.FLATLY, dbc.themes.BOOTSTRAP, dbc.icons.BOOTSTRAP],
 )
 app.title = "PageRank krok po kroku"
 app.layout = create_layout()

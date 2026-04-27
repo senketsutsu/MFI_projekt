@@ -37,7 +37,7 @@ BUTTON_STYLE = {
     "fontWeight": "500",
 }
 
-def create_sidebar():
+def create_sidebar(collapsed=False):
     return html.Div(
         [
             html.H3("PageRank Explorer", className="mb-1"),
@@ -45,20 +45,30 @@ def create_sidebar():
                 "Uproszczony algorytm PageRank",
                 className="text-muted mb-4",
             ),
-            html.H6("Spis treści", className="text-uppercase text-muted"),
-            dbc.Nav(
-                [
-                    dbc.NavLink("Parametry", href="#section-controls", external_link=True, style=NAV_LINK_STYLE),
-                    dbc.NavLink("Graf", href="#section-network", external_link=True, style=NAV_LINK_STYLE),
-                    dbc.NavLink("Wektor PageRank", href="#section-bar", external_link=True, style=NAV_LINK_STYLE),
-                    dbc.NavLink("Zbieżność", href="#section-convergence", external_link=True, style=NAV_LINK_STYLE),
-                    dbc.NavLink("Macierz przejścia", href="#section-matrix", external_link=True, style=NAV_LINK_STYLE),
-                    dbc.NavLink("Tabela iteracji", href="#section-table", external_link=True, style=NAV_LINK_STYLE),
-                ],
-                vertical=True,
-                pills=True,
-                className="mb-4",
+            # html.H6("Spis treści", className="text-uppercase text-muted"),
+            dbc.Button(
+                "☰  Spis treści",
+                id="collapse-button",
+                n_clicks=0,
+                color="light",
+                className="mb-3",
+                style={"width": "100%"},
             ),
+            dbc.Collapse(
+                dbc.Nav(
+                    [
+                        dbc.NavLink("Parametry", href="#section-controls", external_link=True, style=NAV_LINK_STYLE),
+                        dbc.NavLink("Graf", href="#section-network", external_link=True, style=NAV_LINK_STYLE),
+                        dbc.NavLink("Wektor PageRank", href="#section-bar", external_link=True, style=NAV_LINK_STYLE),
+                        dbc.NavLink("Zbieżność", href="#section-convergence", external_link=True, style=NAV_LINK_STYLE),
+                        dbc.NavLink("Macierz przejścia", href="#section-matrix", external_link=True, style=NAV_LINK_STYLE),
+                        dbc.NavLink("Tabela iteracji", href="#section-table", external_link=True, style=NAV_LINK_STYLE),
+                    ],
+                    vertical=True,
+                    pills=True,
+                    className="mb-4",
+            ), id="collapse",
+            is_open=False,),
             html.Hr(),
             html.H6("Dane", className="text-uppercase text-muted"),
             html.P(
@@ -95,15 +105,80 @@ def create_sidebar():
                 className="mb-4",
             ),
             html.Br(),
-            dbc.ButtonGroup(
-                [
-                    dbc.Button("Poprzedni krok", id="prev-button", n_clicks=0, className="w-100 mb-2", style=BUTTON_STYLE),
-                    dbc.Button("Następny krok", id="next-button", n_clicks=0, className="w-100 mb-2", style=BUTTON_STYLE),
-                    dbc.Button("Reset", id="reset-button", n_clicks=0, className="w-100", style=BUTTON_STYLE),
-                ],
-                vertical=True,
-                className="w-100",
-            ),
+            html.Div(
+            [
+                # Play / Stop
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            dbc.Button(
+                                "▷  Play",
+                                id="play-button",
+                                n_clicks=0,
+                                style=BUTTON_STYLE,
+                                className="w-100",
+                            ),
+                            width=6,
+                        ),
+                        dbc.Col(
+                            dbc.Button(
+                                "||  Stop",
+                                id="stop-button",
+                                n_clicks=0,
+                                style=BUTTON_STYLE,
+                                className="w-100",
+                            ),
+                            width=6,
+                        ),
+                    ],
+                    className="mb-2",
+                ),
+
+                # Prev / Next
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            dbc.Button(
+                                "❮❮  Poprzedni",
+                                id="prev-button",
+                                n_clicks=0,
+                                style=BUTTON_STYLE,
+                                className="w-100",
+                            ),
+                            width=6,
+                        ),
+                        dbc.Col(
+                            dbc.Button(
+                                "Następny  ❯❯",
+                                id="next-button",
+                                n_clicks=0,
+                                style=BUTTON_STYLE,
+                                className="w-100",
+                            ),
+                            width=6,
+                        ),
+                    ],
+                    className="mb-2",
+                ),
+
+                # Reset 
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            dbc.Button(
+                                "Reset",
+                                id="reset-button",
+                                n_clicks=0,
+                                style=BUTTON_STYLE,
+                                className="w-100",
+                            ),
+                            width={"size": 12},  
+                        )
+                    ]
+                ),
+            ],
+            className="w-100",
+        )
         ],
         style=SIDEBAR_STYLE,
     )
@@ -113,13 +188,19 @@ def create_main_content():
     return html.Div(
         [
             dcc.Store(id="current-step", data=0),
+            dcc.Interval(
+                id="step-interval",
+                interval=800,  
+                disabled=True
+            ),
+            dcc.Store(id="play-state", data=False),
 
             html.Div(id="section-controls"),
             dbc.Card(
                 dbc.CardBody(
                     [
                         html.H4("Parametry i stan iteracji", className="card-title"),
-                        html.Div(
+                        html.Div( # TODO: it should be automatically scaling the witth of the boxes to the avaliable width of this div
                             id="iteration-info",
                             style={"fontSize": "18px", "marginBottom": "0"},
                         ),
