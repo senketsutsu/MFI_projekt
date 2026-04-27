@@ -7,19 +7,12 @@ from lib.core.pagerank import PageRankStep
 
 Edge = Tuple[str, str]
 
-def build_network_figure(nodes: List[str], edges: List[Edge], ranks: np.ndarray,) -> go.Figure:
-    """
-    Buduje wizualizację grafu skierowanego z aktualnymi wartościami PageRank.
-    Rozmiar węzła zależy od jego rankingu.
-    """
+def build_network_figure(nodes, edges, ranks):
     graph = nx.DiGraph()
     graph.add_nodes_from(nodes)
     graph.add_edges_from(edges)
 
-    if len(nodes) <= 40:
-        pos = nx.spring_layout(graph, seed=42)
-    else:
-        pos = nx.kamada_kawai_layout(graph)
+    pos = nx.spring_layout(graph, seed=42)
 
     edge_x = []
     edge_y = []
@@ -35,7 +28,7 @@ def build_network_figure(nodes: List[str], edges: List[Edge], ranks: np.ndarray,
         y=edge_y,
         mode="lines",
         hoverinfo="none",
-        line=dict(width=0.7, color="#98a2b3"),
+        line=dict(width=1, color="#b8b8c8"),
         name="Krawędzie",
     )
 
@@ -49,7 +42,13 @@ def build_network_figure(nodes: List[str], edges: List[Edge], ranks: np.ndarray,
         node_x.append(x)
         node_y.append(y)
         node_text.append(f"{node}<br>PageRank = {ranks[i]:.4f}")
-        node_sizes.append(25 + ranks[i] * 120)
+        node_sizes.append(28 + ranks[i] * 140)
+
+    cmin = float(np.min(ranks))
+    cmax = float(np.max(ranks))
+
+    if cmin == cmax:
+        cmax = cmin + 1e-9
 
     node_trace = go.Scatter(
         x=node_x,
@@ -62,9 +61,12 @@ def build_network_figure(nodes: List[str], edges: List[Edge], ranks: np.ndarray,
         marker=dict(
             size=node_sizes,
             color=ranks,
-            colorscale="Blues",
-            line=dict(width=1),
-            colorbar=dict(title="PR", thickness=12),
+            colorscale="Purples",
+            cmin=cmin,
+            cmax=cmax,
+            line=dict(width=1, color="#6d597a"),
+            showscale=True,
+            colorbar=dict(title="PageRank"),
         ),
         name="Węzły",
     )
@@ -74,45 +76,46 @@ def build_network_figure(nodes: List[str], edges: List[Edge], ranks: np.ndarray,
         title="Graf i aktualne wartości PageRank",
         showlegend=False,
         margin=dict(l=20, r=20, t=50, b=20),
-        plot_bgcolor="#ffffff",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
     )
     return fig
 
+def build_bar_figure(nodes, ranks):
+    cmin = float(np.min(ranks))
+    cmax = float(np.max(ranks))
 
-def build_bar_figure(nodes: List[str], ranks: np.ndarray, top_n: int = 20) -> go.Figure:
-    """
-    Buduje wykres słupkowy aktualnego wektora PageRank.
-    """
-    order = np.argsort(ranks)[::-1]
-    if len(nodes) > top_n:
-        order = order[:top_n]
-
-    sorted_nodes = [nodes[i] for i in order]
-    sorted_ranks = ranks[order]
+    if cmin == cmax:
+        cmax = cmin + 1e-9
 
     fig = go.Figure(
         data=[
             go.Bar(
-                x=sorted_nodes,
-                y=sorted_ranks,
-                text=[f"{value:.4f}" for value in sorted_ranks],
+                x=nodes,
+                y=ranks,
+                text=[f"{value:.4f}" for value in ranks],
                 textposition="outside",
-                marker=dict(color="#2563eb"),
+                marker=dict(
+                    color=ranks,
+                    colorscale="Purples",
+                    cmin=cmin,
+                    cmax=cmax,
+                    line=dict(width=1, color="#6d597a"),
+                    showscale=False,
+                ),
             )
         ]
     )
 
-    title = "Aktualny wektor PageRank"
-    if len(nodes) > top_n:
-        title = f"Aktualny wektor PageRank (Top {top_n} z {len(nodes)} węzłów)"
-
     fig.update_layout(
-        title=title,
+        title="Aktualny wektor PageRank",
         xaxis_title="Węzeł",
         yaxis_title="Wartość",
         margin=dict(l=20, r=20, t=50, b=20),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
     )
     return fig
 

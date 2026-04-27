@@ -1,100 +1,225 @@
 from dash import dcc, html
+import dash_bootstrap_components as dbc
+
 from data.example_graphs import EXAMPLE_GRAPHS
 
-def create_layout():
+
+SIDEBAR_STYLE = {
+    "position": "sticky",
+    "top": "0",
+    "height": "100vh",
+    "padding": "1rem",
+    "backgroundColor": "#f8f9fa",
+    "borderRight": "1px solid #dee2e6",
+    "overflowY": "auto",
+}
+
+CONTENT_STYLE = {
+    "padding": "1.25rem",
+}
+
+CARD_STYLE = {
+    "border": "1px solid #e9ecef",
+    "borderRadius": "16px",
+    "boxShadow": "0 2px 10px rgba(0,0,0,0.06)",
+}
+
+NAV_LINK_STYLE = {
+    "color": "#1d4e89",
+    "fontWeight": "500",
+}
+
+BUTTON_STYLE = {
+    "backgroundColor": "#ede4f7",
+    "borderColor": "#ede4f7",
+    "color": "#35224a",
+    "borderRadius": "10px",
+    "fontWeight": "500",
+}
+
+def create_sidebar():
     return html.Div(
-        style={"maxWidth": "1400px", "margin": "0 auto", "padding": "20px", "fontFamily": "Arial"},
-        children=[
-            html.H1("Uproszczony PageRank w Dash"),
+        [
+            html.H3("PageRank Explorer", className="mb-1"),
             html.P(
-                "Aplikacja pokazuje iteracyjne obliczanie PageRank oraz pozwala prześledzić każdą iterację metody."
+                "Uproszczony algorytm PageRank",
+                className="text-muted mb-4",
             ),
-            html.Div(
-                style={
-                    "display": "grid",
-                    "gridTemplateColumns": "1fr 1fr 1fr 1fr",
-                    "gap": "16px",
-                    "marginBottom": "20px",
-                },
-                children=[
-                    html.Div(
-                        children=[
-                            html.Label("Wybierz graf:"),
-                            dcc.Dropdown(
-                                id="graph-selector",
-                                options=[{"label": name, "value": name} for name in EXAMPLE_GRAPHS.keys()],
-                                value=next(iter(EXAMPLE_GRAPHS)),
-                                clearable=False,
-                            ),
-                        ]
-                    ),
-                    html.Div(
-                        children=[
-                            html.Label("Współczynnik tłumienia d:"),
-                            dcc.Slider(
-                                id="damping-slider",
-                                min=0.50,
-                                max=0.95,
-                                step=0.05,
-                                value=0.85,
-                                marks={i / 100: f"{i / 100:.2f}" for i in range(50, 100, 10)},
-                            ),
-                        ]
-                    ),
-                    html.Div(
-                        children=[
-                            html.Label("Liczba iteracji:"),
-                            dcc.Slider(
-                                id="max-iter-slider",
-                                min=1,
-                                max=100,
-                                step=1,
-                                value=30,
-                                marks={1: "1", 10: "10", 30: "30", 60: "60", 100: "100"},
-                            ),
-                        ]
-                    ),
-                    html.Div(
-                        children=[
-                            html.Label("Dokładność (tol = 10^-x):"),
-                            dcc.Slider(
-                                id="tol-slider",
-                                min=3,
-                                max=10,
-                                step=1,
-                                value=6,
-                                marks={i: f"1e-{i}" for i in range(3, 11)},
-                            ),
-                        ]
-                    ),
+            html.H6("Spis treści", className="text-uppercase text-muted"),
+            dbc.Nav(
+                [
+                    dbc.NavLink("Parametry", href="#section-controls", external_link=True, style=NAV_LINK_STYLE),
+                    dbc.NavLink("Graf", href="#section-network", external_link=True, style=NAV_LINK_STYLE),
+                    dbc.NavLink("Wektor PageRank", href="#section-bar", external_link=True, style=NAV_LINK_STYLE),
+                    dbc.NavLink("Zbieżność", href="#section-convergence", external_link=True, style=NAV_LINK_STYLE),
+                    dbc.NavLink("Macierz przejścia", href="#section-matrix", external_link=True, style=NAV_LINK_STYLE),
+                    dbc.NavLink("Tabela iteracji", href="#section-table", external_link=True, style=NAV_LINK_STYLE),
                 ],
+                vertical=True,
+                pills=True,
+                className="mb-4",
             ),
-            html.Div(
-                style={"display": "flex", "gap": "12px", "marginBottom": "20px"},
-                children=[
-                    html.Button("Poprzedni krok", id="prev-button", n_clicks=0),
-                    html.Button("Następny krok", id="next-button", n_clicks=0),
-                    html.Button("Reset", id="reset-button", n_clicks=0),
+            html.Hr(),
+            html.H6("Dane", className="text-uppercase text-muted"),
+            html.P(
+                "Na razie korzystamy z domyślnego zbioru grafów. Później można tu dodać upload danych.",
+                className="small text-muted mb-3",
+            ),
+            html.Label("Wybierz graf:", className="fw-semibold"),
+            dcc.Dropdown(
+                id="graph-selector",
+                options=[{"label": name, "value": name} for name in EXAMPLE_GRAPHS.keys()],
+                value="Mały graf testowy",
+                clearable=False,
+                className="mb-4",
+            ),
+            html.Label("Współczynnik tłumienia d:", className="fw-semibold"),
+            dcc.Slider(
+                id="damping-slider",
+                min=0.50,
+                max=0.95,
+                step=0.05,
+                value=0.85,
+                marks={i / 100: f"{i / 100:.2f}" for i in range(50, 100, 10)},
+                className="mb-4",
+            ),
+            html.Br(),
+            html.Label("Liczba iteracji:", className="fw-semibold"),
+            dcc.Slider(
+                id="max-iter-slider",
+                min=1,
+                max=30,
+                step=1,
+                value=10,
+                marks={i: str(i) for i in range(1, 31, 5)},
+                className="mb-4",
+            ),
+            html.Br(),
+            dbc.ButtonGroup(
+                [
+                    dbc.Button("Poprzedni krok", id="prev-button", n_clicks=0, className="w-100 mb-2", style=BUTTON_STYLE),
+                    dbc.Button("Następny krok", id="next-button", n_clicks=0, className="w-100 mb-2", style=BUTTON_STYLE),
+                    dbc.Button("Reset", id="reset-button", n_clicks=0, className="w-100", style=BUTTON_STYLE),
                 ],
+                vertical=True,
+                className="w-100",
             ),
-            dcc.Store(id="current-step", data=0),
-            html.Div(id="iteration-info", style={"fontSize": "18px", "marginBottom": "10px"}),
-            html.Div(
-                style={
-                    "display": "grid",
-                    "gridTemplateColumns": "1.2fr 1fr",
-                    "gap": "18px",
-                    "marginBottom": "20px",
-                },
-                children=[
-                    dcc.Graph(id="network-graph"),
-                    dcc.Graph(id="bar-chart"),
-                ],
-            ),
-            dcc.Graph(id="convergence-chart"),
-            html.H3("Macierz przejścia"),
-            html.Div(id="matrix-view", style={"marginBottom": "20px"}),
-            html.H3("Tabela wszystkich iteracji"),
-            html.Div(id="iterations-table"),
         ],
+        style=SIDEBAR_STYLE,
+    )
+
+
+def create_main_content():
+    return html.Div(
+        [
+            dcc.Store(id="current-step", data=0),
+
+            html.Div(id="section-controls"),
+            dbc.Card(
+                dbc.CardBody(
+                    [
+                        html.H4("Parametry i stan iteracji", className="card-title"),
+                        html.Div(
+                            id="iteration-info",
+                            style={"fontSize": "18px", "marginBottom": "0"},
+                        ),
+                    ]
+                ),
+                style=CARD_STYLE,
+                className="mb-4",
+            ),
+
+            html.Div(id="section-network"),
+html.Div(id="section-bar"),
+dbc.Row(
+    [
+        dbc.Col(
+            dbc.Card(
+                dbc.CardBody(
+                    [
+                        html.H4("Graf i aktualne wartości PageRank", className="card-title"),
+                        dcc.Graph(
+                            id="network-graph",
+                            style={"height": "380px"},
+                        ),
+                    ]
+                ),
+                style=CARD_STYLE,
+                className="mb-4 h-100",
+            ),
+            md=6,
+        ),
+        dbc.Col(
+            dbc.Card(
+                dbc.CardBody(
+                    [
+                        html.H4("Wektor PageRank", className="card-title"),
+                        dcc.Graph(
+                            id="bar-chart",
+                            style={"height": "380px"},
+                        ),
+                    ]
+                ),
+                style=CARD_STYLE,
+                className="mb-4 h-100",
+            ),
+            md=6,
+        ),
+    ],
+    className="g-4",
+),
+
+            html.Div(id="section-convergence"),
+            dbc.Card(
+                dbc.CardBody(
+                    [
+                        html.H4("Zbieżność metody", className="card-title"),
+                        dcc.Graph(id="convergence-chart"),
+                    ]
+                ),
+                style=CARD_STYLE,
+                className="mb-4",
+            ),
+
+            html.Div(id="section-matrix"),
+            dbc.Card(
+                dbc.CardBody(
+                    [
+                        html.H4("Macierz przejścia", className="card-title"),
+                        html.Div(id="matrix-view"),
+                    ]
+                ),
+                style=CARD_STYLE,
+                className="mb-4",
+            ),
+
+            html.Div(id="section-table"),
+            dbc.Card(
+                dbc.CardBody(
+                    [
+                        html.H4("Tabela wszystkich iteracji", className="card-title"),
+                        html.Div(id="iterations-table"),
+                    ]
+                ),
+                style=CARD_STYLE,
+                className="mb-4",
+            ),
+        ],
+        style=CONTENT_STYLE,
+    )
+
+
+def create_layout():
+    return dbc.Container(
+        [
+            dbc.Row(
+                [
+                    dbc.Col(create_sidebar(), width=3),
+                    dbc.Col(create_main_content(), width=9),
+                ],
+                className="g-0",
+            )
+        ],
+        fluid=True,
+        className="px-0",
     )
