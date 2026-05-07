@@ -83,6 +83,22 @@ def register_callbacks(app):
         
         return False, True
 
+    app.clientside_callback(
+        """
+        function(converged) {
+            if (converged === true && window.confetti) {
+                window.confetti({
+                    particleCount: 140,
+                    spread: 90,
+                    origin: { y: 0.6 }
+                });
+            }
+            return "";
+        }
+        """,
+        Output("dummy-output", "children"),
+        Input("confetti-trigger", "data"),
+    )
     
     @app.callback(
         Output("collapse", "is_open"),
@@ -101,6 +117,9 @@ def register_callbacks(app):
         Output("convergence-chart", "figure"),
         Output("matrix-view", "children"),
         Output("iterations-table", "children"),
+
+        Output("confetti-trigger", "data"),
+
         Input("graph-selector", "value"),
         Input("damping-slider", "value"),
         Input("max-iter-slider", "value"),
@@ -234,4 +253,5 @@ def register_callbacks(app):
             build_convergence_figure(steps),
             matrix_table,
             iterations_table,
+            bool(converged),
         )

@@ -188,6 +188,10 @@ def create_main_content():
     return html.Div(
         [
             dcc.Store(id="current-step", data=0),
+
+            dcc.Store(id="confetti-trigger", data=False),
+            html.Div(id="dummy-output", style={"display": "none"}),
+
             dcc.Interval(
                 id="step-interval",
                 interval=800,  
@@ -299,7 +303,9 @@ def create_layout():
                     dbc.Col(create_main_content(), width=9),
                 ],
                 className="g-0",
-            )
+            ),
+            dcc.Store(id="confetti-fire", data=0),
+            
         ],
         fluid=True,
         className="px-0",
