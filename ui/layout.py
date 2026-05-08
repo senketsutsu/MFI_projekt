@@ -94,14 +94,14 @@ def create_sidebar(collapsed=False):
                 className="mb-4",
             ),
             html.Br(),
-            html.Label("Liczba iteracji:", className="fw-semibold"),
+            html.Label("Maksymalna liczba iteracji:", className="fw-semibold"),
             dcc.Slider(
                 id="max-iter-slider",
                 min=1,
-                max=30,
+                max=100,
                 step=1,
                 value=10,
-                marks={i: str(i) for i in range(1, 31, 5)},
+                marks={i: str(i) for i in range(1, 101, 10)},
                 className="mb-4",
             ),
             html.Br(),
@@ -188,8 +188,11 @@ def create_main_content():
     return html.Div(
         [
             dcc.Store(id="current-step", data=0),
+            dcc.Store(id="play-speed", data=1),
 
             dcc.Store(id="confetti-trigger", data=False),
+            dcc.Store(id="has-converged", data=False),
+
             html.Div(id="dummy-output", style={"display": "none"}),
 
             dcc.Interval(
@@ -204,13 +207,13 @@ def create_main_content():
                 dbc.CardBody(
                     [
                         html.H4("Parametry i stan iteracji", className="card-title"),
-                        html.Div( # TODO: it should be automatically scaling the witth of the boxes to the avaliable width of this div
+                        html.Div( 
                             id="iteration-info",
                             style={"fontSize": "18px", "marginBottom": "0"},
                         ),
                     ]
                 ),
-                style=CARD_STYLE,
+                style={**CARD_STYLE, "width": "100%"},
                 className="mb-4",
             ),
 

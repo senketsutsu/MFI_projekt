@@ -12,7 +12,12 @@ def build_network_figure(nodes, edges, ranks):
     graph.add_nodes_from(nodes)
     graph.add_edges_from(edges)
 
-    pos = nx.spring_layout(graph, seed=42)
+    pos = nx.spring_layout(
+            graph,
+            seed=42,
+            k=0.9,          
+            iterations=80   
+        )
 
     edge_x = []
     edge_y = []
@@ -28,7 +33,7 @@ def build_network_figure(nodes, edges, ranks):
         y=edge_y,
         mode="lines",
         hoverinfo="none",
-        line=dict(width=1, color="#b8b8c8"),
+        line=dict(width=1, color="rgba(120,120,140,0.35)"),
         name="Krawędzie",
     )
 
@@ -41,7 +46,10 @@ def build_network_figure(nodes, edges, ranks):
         x, y = pos[node]
         node_x.append(x)
         node_y.append(y)
-        node_text.append(f"{node}<br>PageRank = {ranks[i]:.4f}")
+        node_text.append(
+                            f"<b>{node}</b><br>"
+                            f"PageRank: {ranks[i]:.6f}"
+                        )
         node_sizes.append(28 + ranks[i] * 140)
 
     cmin = float(np.min(ranks))
@@ -119,7 +127,7 @@ def build_bar_figure(nodes, ranks):
     )
     return fig
 
-def build_convergence_figure(steps: List[PageRankStep]) -> go.Figure:
+def build_convergence_figure(steps: List[PageRankStep], current_iteration: int = None) -> go.Figure:
     """
     Buduje wykres zbieżności metody iteracyjnej:
     ||r(k) - r(k-1)||_1
@@ -131,14 +139,73 @@ def build_convergence_figure(steps: List[PageRankStep]) -> go.Figure:
                 y=[step.diff for step in steps],
                 mode="lines+markers",
                 name="Różnica L1",
+                line=dict(color="#c4a7d8", width=2),
+                hovertemplate="Iteracja: %{x}<br>Różnica: %{y:.8f}<extra></extra>",
             )
         ]
     )
+
+    if current_iteration is not None:
+        fig.add_vline(
+            x=current_iteration,
+            line_width=1.5,
+            line_dash="dash",
+            line_color="#6d597a"
+        )
 
     fig.update_layout(
         title="Zbieżność metody iteracyjnej",
         xaxis_title="Iteracja",
         yaxis_title="||r(k) - r(k-1)||₁",
-        margin=dict(l=20, r=20, t=50, b=20),
+        margin=dict(l=40, r=20, t=60, b=40),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        hoverlabel=dict(
+            bgcolor="white",
+            font_size=12,
+        ),
+    )
+    fig.update_xaxes(
+        title_text="Iteracja",
+        showline=True,
+        linecolor="#E5E7EB",
+        linewidth=1,
+        ticks="outside",
+        tickcolor="#E5E7EB",
+        showgrid=False,
+        zeroline=False,
+    )
+
+    fig.update_yaxes(
+        title_text="||r(k) - r(k-1)||₁",
+        showline=True,
+        linecolor="#E5E7EB",
+        linewidth=1,
+        ticks="outside",
+        tickcolor="#E5E7EB",
+        showgrid=True,
+        gridcolor="#F3F4F6",   
+        zeroline=False,
     )
     return fig
+
+def build_matrix_heatmap(matrix, nodes):
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=matrix,
+            x=nodes,
+            y=nodes,
+            colorscale="Purples",
+            showscale=True,
+            hovertemplate="From %{y}<br>To %{x}<br>Value=%{z:.3f}<extra></extra>",
+        )
+    )
+
+    fig.update_layout(
+        title="Macierz przejścia",
+        margin=dict(l=20, r=20, t=40, b=20),
+        paper_bgcolor="white",
+    )
+
+    return fig
+
