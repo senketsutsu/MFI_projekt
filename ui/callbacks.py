@@ -2,10 +2,19 @@ import dash
 import dash_bootstrap_components as dbc
 import numpy as np
 from dash import Input, Output, State, html
-from ui.layout import create_sidebar
+
 from data.example_graphs import EXAMPLE_GRAPHS
-from lib.core.pagerank import build_nodes, build_transition_matrix, compare_with_networkx, pagerank_iterations
-from lib.visuals.figures import build_bar_figure, build_convergence_figure, build_network_figure
+from lib.core.pagerank import (
+    build_nodes,
+    build_transition_matrix,
+    compare_with_networkx,
+    pagerank_iterations,
+)
+from lib.visuals.figures import (
+    build_bar_figure,
+    build_convergence_figure,
+    build_network_figure,
+)
 
 
 def steps_to_table_data(nodes, steps):
@@ -19,7 +28,9 @@ def steps_to_table_data(nodes, steps):
 
         for i, node in enumerate(nodes):
             row[node] = f"{step.vector[i]:.6f}"
+
         rows.append(row)
+
     return rows
 
 
@@ -39,6 +50,7 @@ def register_callbacks(app):
     def update_step(prev_clicks, next_clicks, reset_clicks, graph_name, damping, max_iter, interval_tick, current_step):
         current_step = current_step or 0
         ctx = dash.callback_context
+
         if not ctx.triggered:
             return 0
 
@@ -52,16 +64,17 @@ def register_callbacks(app):
         max_step = len(steps) - 1
 
         if trigger_id in {"graph-selector", "damping-slider", "max-iter-slider", "reset-button"}:
-            auto = False
             return 0
+
         if trigger_id == "prev-button":
-            auto = False
             return max(0, current_step - 1)
+
         if trigger_id == "next-button":
-            auto = False
             return min(max_step, current_step + 1)
+
         if auto:
             return min(max_step, current_step + 1)
+
         return 0
 
     @app.callback(
@@ -73,6 +86,7 @@ def register_callbacks(app):
     )
     def toggle_play(play_clicks, stop_clicks, playing):
         ctx = dash.callback_context
+
         if not ctx.triggered:
             return False, True
 
@@ -80,30 +94,43 @@ def register_callbacks(app):
 
         if trigger == "play-button":
             return True, False
-        
+
         return False, True
 
     app.clientside_callback(
         """
-        function(converged) {
-            if (converged === true && window.confetti) {
-                window.confetti({
-                    particleCount: 140,
-                    spread: 90,
-                    origin: { y: 0.6 }
-                });
+        function(trigger) {
+            if (!trigger) {
+                return "";
             }
+
+            if (window.lastConfettiTrigger === trigger) {
+                return "";
+            }
+
+            window.lastConfettiTrigger = trigger;
+
+            setTimeout(function() {
+                if (window.confetti) {
+                    window.confetti({
+                        particleCount: 140,
+                        spread: 90,
+                        origin: { y: 0.6 }
+                    });
+                }
+            }, 250);
+
             return "";
         }
         """,
         Output("dummy-output", "children"),
         Input("confetti-trigger", "data"),
     )
-    
+
     @app.callback(
         Output("collapse", "is_open"),
-        [Input("collapse-button", "n_clicks")],
-        [State("collapse", "is_open")],
+        Input("collapse-button", "n_clicks"),
+        State("collapse", "is_open"),
     )
     def toggle_collapse(n, is_open):
         if n:
@@ -117,9 +144,7 @@ def register_callbacks(app):
         Output("convergence-chart", "figure"),
         Output("matrix-view", "children"),
         Output("iterations-table", "children"),
-
         Output("confetti-trigger", "data"),
-
         Input("graph-selector", "value"),
         Input("damping-slider", "value"),
         Input("max-iter-slider", "value"),
@@ -129,6 +154,7 @@ def register_callbacks(app):
         edges = EXAMPLE_GRAPHS[graph_name]
         nodes = build_nodes(edges)
         matrix = build_transition_matrix(nodes, edges)
+
         tol = 1e-6
         steps = pagerank_iterations(matrix, damping=damping, max_iter=max_iter, tol=tol)
 
@@ -146,80 +172,70 @@ def register_callbacks(app):
             tol=tol,
         )
 
-        comparison_block = []
-        if comparison.error is None:
-            comparison_block = [
-                html.Span(f" | zgodność z NetworkX L1: {comparison.l1_diff:.8e}"),
-                html.Span(f" | max|Δ|: {comparison.max_abs_diff:.8e}"),
-            ]
-        else:
-            comparison_block = [
-                html.Span(f" | porównanie z NetworkX niedostępne: {comparison.error}"),
-            ]
-
         info = dbc.Row(
-    [
-        dbc.Col(
-            dbc.Card(
-                dbc.CardBody([
-                    html.Div("Aktualna iteracja", className="text-muted small"),
-                    html.Div(f"{current.iteration}", className="fw-bold fs-5"),
-                ]),
-                className="h-100",
-            ),
-            md=2,
-        ),
-        dbc.Col(
-            dbc.Card(
-                dbc.CardBody([
-                    html.Div("Różnica", className="text-muted small"),
-                    html.Div(f"{np.round(current.diff, 4)}", className="fw-bold fs-6"),
-                ]),
-                className="h-100",
-            ),
-            md=2,
-        ),
-        dbc.Col(
-            dbc.Card(
-                dbc.CardBody([
-                    html.Div("Suma ranków", className="text-muted small"),
-                    html.Div(f"{np.round(np.sum(current.vector), 2)}", className="fw-bold fs-6"),
-                ]),
-                className="h-100",
-            ),
-            md=2,
-        ),
-        dbc.Col(
-            dbc.Card(
-                dbc.CardBody([
-                    html.Div("Iteracje wykonane", className="text-muted small"),
-                    html.Div(f"{len(steps) - 1}", className="fw-bold fs-6"),
-                ]),
-                className="h-100",
-            ),
-            md=2,
-        ),
-        dbc.Col(
-            dbc.Card(
-                dbc.CardBody([
-                    html.Div("Zbieżność", className="text-muted small"),
-                    html.Div(
-                        f"{'TAK' if converged else 'NIE'}",
-                        className="fw-bold fs-6",
-                        style={"color": "#2e7d32" if converged else "#b23a48"},
+            [
+                dbc.Col(
+                    dbc.Card(
+                        dbc.CardBody([
+                            html.Div("Aktualna iteracja", className="text-muted small"),
+                            html.Div(f"{current.iteration}", className="fw-bold fs-5"),
+                        ]),
+                        className="h-100",
                     ),
-                    html.Div(f"tol={tol:.0e}", className="small text-muted"),
-                ]),
-                className="h-100",
-            ),
-            md=2,
-        ),
-    ],
-    className="g-3",
-)
+                    md=2,
+                ),
+                dbc.Col(
+                    dbc.Card(
+                        dbc.CardBody([
+                            html.Div("Różnica", className="text-muted small"),
+                            html.Div(f"{np.round(current.diff, 4)}", className="fw-bold fs-6"),
+                        ]),
+                        className="h-100",
+                    ),
+                    md=2,
+                ),
+                dbc.Col(
+                    dbc.Card(
+                        dbc.CardBody([
+                            html.Div("Suma ranków", className="text-muted small"),
+                            html.Div(f"{np.round(np.sum(current.vector), 2)}", className="fw-bold fs-6"),
+                        ]),
+                        className="h-100",
+                    ),
+                    md=2,
+                ),
+                dbc.Col(
+                    dbc.Card(
+                        dbc.CardBody([
+                            html.Div("Iteracje wykonane", className="text-muted small"),
+                            html.Div(f"{len(steps) - 1}", className="fw-bold fs-6"),
+                        ]),
+                        className="h-100",
+                    ),
+                    md=2,
+                ),
+                dbc.Col(
+                    dbc.Card(
+                        dbc.CardBody([
+                            html.Div("Zbieżność", className="text-muted small"),
+                            html.Div(
+                                f"{'TAK' if converged else 'NIE'}",
+                                className="fw-bold fs-6",
+                                style={"color": "#2e7d32" if converged else "#b23a48"},
+                            ),
+                            html.Div(f"tol={tol:.0e}", className="small text-muted"),
+                        ]),
+                        className="h-100",
+                    ),
+                    md=2,
+                ),
+            ],
+            className="g-3",
+        )
 
         matrix_header = html.Tr([html.Th(" ")] + [html.Th(node) for node in nodes])
         matrix_rows = []
+
         for i, row_node in enumerate(nodes):
             row = [html.Td(row_node)] + [html.Td(f"{matrix[i, j]:.3f}") for j in range(len(nodes))]
             matrix_rows.append(html.Tr(row))
@@ -232,6 +248,7 @@ def register_callbacks(app):
         table_data = steps_to_table_data(nodes, steps)
         table_header = html.Tr([html.Th(col) for col in table_data[0].keys()])
         table_rows = []
+
         for row in table_data:
             style = {"backgroundColor": "#f1f5f9"} if int(row["iteracja"]) == current.iteration else {}
             table_rows.append(html.Tr([html.Td(value) for value in row.values()], style=style))
@@ -246,6 +263,12 @@ def register_callbacks(app):
             ],
         )
 
+        is_finished_now = current.iteration == final_step.iteration and converged
+
+        confetti_token = None
+        if is_finished_now:
+            confetti_token = f"{graph_name}-{damping}-{max_iter}-{current.iteration}"
+
         return (
             info,
             build_network_figure(nodes, edges, current.vector),
@@ -253,5 +276,5 @@ def register_callbacks(app):
             build_convergence_figure(steps),
             matrix_table,
             iterations_table,
-            bool(converged),
+            confetti_token,
         )
