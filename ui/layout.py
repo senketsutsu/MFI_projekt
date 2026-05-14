@@ -1,4 +1,4 @@
-from dash import dcc, html
+from dash import dcc, html, dash_table
 import dash_bootstrap_components as dbc
 
 from data.example_graphs import EXAMPLE_GRAPHS
@@ -63,6 +63,7 @@ def create_sidebar(collapsed=False):
                         dbc.NavLink("Zbieżność", href="#section-convergence", external_link=True, style=NAV_LINK_STYLE),
                         dbc.NavLink("Macierz przejścia", href="#section-matrix", external_link=True, style=NAV_LINK_STYLE),
                         dbc.NavLink("Tabela iteracji", href="#section-table", external_link=True, style=NAV_LINK_STYLE),
+                        dbc.NavLink("Analiza", href="#section-analysis", external_link=True, style=NAV_LINK_STYLE), 
                     ],
                     vertical=True,
                     pills=True,
@@ -72,7 +73,8 @@ def create_sidebar(collapsed=False):
             html.Hr(),
             html.H6("Dane", className="text-uppercase text-muted"),
             html.P(
-                "Na razie korzystamy z domyślnego zbioru grafów. Później można tu dodać upload danych.",
+                "Korzystamy z domyślnego zbioru grafów oferowanego przez bibliotekę NetworkX.",
+                # "Na razie korzystamy z domyślnego zbioru grafów. Później można tu dodać upload danych.",
                 className="small text-muted mb-3",
             ),
             html.Label("Wybierz graf:", className="fw-semibold"),
@@ -287,6 +289,112 @@ dbc.Row(
                     [
                         html.H4("Tabela wszystkich iteracji", className="card-title"),
                         html.Div(id="iterations-table"),
+                    ]
+                ),
+                style=CARD_STYLE,
+                className="mb-4",
+            ),
+
+            html.Div(id="section-analysis"),
+
+            dbc.Card(
+                dbc.CardBody(
+                    [
+                        html.H3(
+                            "Analiza wpływu rozmiaru sieci",
+                            className="card-title mb-4",
+                        ),
+
+                        dbc.Row(
+                            [
+
+                                dbc.Col(
+                                    dbc.Card(
+                                        dbc.CardBody(
+                                            [
+                                                html.H5(
+                                                    "Wykres 3D zbieżności",
+                                                    className="card-title",
+                                                ),
+
+                                                dcc.Graph(
+                                                    id="analysis-3d-graph",
+                                                    style={"height": "420px"},
+                                                ),
+                                            ]
+                                        ),
+                                        style=CARD_STYLE,
+                                        className="h-100",
+                                    ),
+                                    md=6,
+                                ),
+
+                                dbc.Col(
+                                    dbc.Card(
+                                        dbc.CardBody(
+                                            [
+                                                html.H5(
+                                                    "Iteracja vs różnica",
+                                                    className="card-title",
+                                                ),
+
+                                                dcc.Graph(
+                                                    id="analysis-convergence-graph",
+                                                    style={"height": "420px"},
+                                                ),
+                                            ]
+                                        ),
+                                        style=CARD_STYLE,
+                                        className="h-100",
+                                    ),
+                                    md=6,
+                                ),
+                            ],
+                            className="g-4 mb-4",
+                        ),
+
+                        html.P(
+                            """
+                            TODO: Dodać opis analizy
+                            """,
+                            className="text-muted",
+                        ),
+
+                        html.H5(
+                            "Tabela danych analitycznych",
+                            className="mb-3",
+                        ),
+
+                        dash_table.DataTable(
+                            id="analysis-table",
+
+                            page_size=12,
+
+                            sort_action="native",
+
+                            filter_action="native",
+
+                            style_table={
+                                "overflowX": "auto",
+                            },
+
+                            style_cell={
+                                "textAlign": "center",
+                                "padding": "8px",
+                                "fontFamily": "Arial",
+                                "fontSize": "14px",
+                            },
+
+                            style_header={
+                                "backgroundColor": "#f1f3f5",
+                                "fontWeight": "bold",
+                            },
+
+                            style_data={
+                                "backgroundColor": "white",
+                                "border": "1px solid #dee2e6",
+                            },
+                        ),
                     ]
                 ),
                 style=CARD_STYLE,

@@ -1,5 +1,7 @@
 import dash
 import dash_bootstrap_components as dbc
+import pandas as pd
+import plotly.express as px
 import numpy as np
 from dash import Input, Output, State, html
 from ui.layout import create_sidebar
@@ -7,23 +9,192 @@ from data.example_graphs import EXAMPLE_GRAPHS
 from lib.core.pagerank import build_nodes, build_transition_matrix, compare_with_networkx, pagerank_iterations
 from lib.visuals.figures import build_bar_figure, build_convergence_figure, build_matrix_heatmap, build_network_figure
 
-
-def steps_to_table_data(nodes, steps):
-    rows = []
-
-    for step in steps:
-        row = {
-            "iteracja": step.iteration,
-            "diff": f"{step.diff:.8f}",
-        }
-
-        for i, node in enumerate(nodes):
-            row[node] = f"{step.vector[i]:.6f}"
-        rows.append(row)
-    return rows
+analysis_df = pd.read_csv(
+    "lib/core/pagerank_analysis.csv"
+)
 
 
 def register_callbacks(app):
+    
+    @app.callback(
+        Output("analysis-3d-graph", "figure"),
+        Input("damping-slider", "value"),
+    )
+    def update_analysis_3d(_):
+
+        grouped = (
+        analysis_df
+        .groupby(["num_nodes", "damping"])
+        ["convergence_iteration"]
+        .mean()
+        .reset_index()
+    )
+
+        pivot = grouped.pivot(
+            index="damping",
+            columns="num_nodes",
+            values="convergence_iteration",
+        )
+
+        fig = {
+            "data": [
+                {
+                    "type": "surface",
+
+                    "x": pivot.columns,
+                    "y": pivot.index,
+                    "z": pivot.values,
+
+                    "colorscale": "Viridis",
+
+                    "showscale": True,
+                }
+            ],
+
+            "layout": {
+                "title": "Wpływ liczby nodów i damping na zbieżność",
+
+                "scene": {
+                    "xaxis": {
+                        "title": {
+                            "text": "Liczba nodów"
+                        }
+                    },
+
+                    "yaxis": {
+                        "title": {
+                            "text": "Damping"
+                        }
+                    },
+
+                    "zaxis": {
+                        "title": {
+                            "text": "Iteracja zbieżności"
+                        }
+                    },
+
+                    "camera": {
+                        "eye": {
+                            "x": 1.6,
+                            "y": 1.4,
+                            "z": 0.8,
+                        }
+                    },
+                },
+
+                "margin": {
+                    "l": 0,
+                    "r": 0,
+                    "b": 0,
+                    "t": 50,
+                },
+            },
+        }
+
+        return fig
+
+    @app.callback(
+        Output("analysis-convergence-graph", "figure"),
+        Input("damping-slider", "value"),
+    )
+    def update_analysis_convergence(_):
+
+        grouped = (
+            analysis_df
+            .groupby(
+                ["num_nodes", "iteration", "damping"]
+            )["diff"]
+            .mean()
+            .reset_index()
+        )
+
+        grouped = grouped[grouped["iteration"] > 0]
+
+        fig = px.line(
+            grouped,
+
+            x="iteration",
+            y="diff",
+
+            color="damping",
+
+            animation_frame="num_nodes",
+
+            log_y=True,
+
+            markers=False,
+
+            title="Wpływ rozmiaru sieci na zbieżność",
+        )
+
+        fig.update_layout(
+            xaxis_title="Iteracja",
+            yaxis_title="Diff (log)",
+
+            xaxis=dict(
+                range=[0, grouped["iteration"].max()]
+            ),
+
+            margin=dict(
+                l=0,
+                r=0,
+                t=50,
+                b=0,
+            ),
+            transition={
+                "duration": 3000,
+            },
+
+            legend_title="Damping",
+        )
+
+        return fig
+
+    @app.callback(
+        Output("analysis-table", "data"),
+        Output("analysis-table", "columns"),
+        Input("damping-slider", "value"),
+    )
+    def update_analysis_table(_):
+
+        grouped = (
+            analysis_df
+            .groupby("num_nodes")
+            .agg(
+                avg_convergence_iteration=("convergence_iteration", "mean"),
+                min_convergence_iteration=("convergence_iteration", "min"),
+                max_convergence_iteration=("convergence_iteration", "max"),
+            )
+            .reset_index()
+            .sort_values("num_nodes")
+        )
+
+        grouped["avg_convergence_iteration"] = grouped["avg_convergence_iteration"].round(4)
+
+        columns = [
+            {"name": "Rozmiar sieci", "id": "num_nodes"},
+            {"name": "Średnia iteracja zbieżności", "id": "avg_convergence_iteration"},
+            {"name": "Min iteracja zbieżności", "id": "min_convergence_iteration"},
+            {"name": "Max iteracja zbieżności", "id": "max_convergence_iteration"},
+        ]
+
+        return grouped.to_dict("records"), columns
+
+    def steps_to_table_data(nodes, steps):
+        rows = []
+
+        for step in steps:
+            row = {
+                "iteracja": step.iteration,
+                "diff": f"{step.diff:.8f}",
+            }
+
+            for i, node in enumerate(nodes):
+                row[node] = f"{step.vector[i]:.6f}"
+            rows.append(row)
+        return rows
+
+
     @app.callback(
         Output("current-step", "data"),
         Input("prev-button", "n_clicks"),
@@ -101,22 +272,22 @@ def register_callbacks(app):
 
         ctx = dash.callback_context
         if not ctx.triggered:
-            return False, 1, True, 800
+            return False, 1, True, 600
 
         trigger = ctx.triggered[0]["prop_id"].split(".")[0]
 
         if trigger in {"stop-button", "graph-selector", "damping-slider", "max-iter-slider", "reset-button"}:
-            return False, 1, True, 800
+            return False, 1, True, 600
 
         if trigger == "play-button":
             if not playing:
-                return True, 1, False, 800  
+                return True, 1, False, 600  
             else:
                 new_speed = 2 if speed == 1 else 1
-                interval = 400 if new_speed == 2 else 800
+                interval = 400 if new_speed == 2 else 600
                 return True, new_speed, False, interval
 
-        return playing, speed, not playing, 800
+        return playing, speed, not playing, 600
 
     app.clientside_callback(
         """
