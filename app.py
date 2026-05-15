@@ -13,7 +13,7 @@ app = dash.Dash(
     ],
 )
 
-app.title = "PageRank krok po kroku"
+app.title = "PageRank Explorer"
 app.layout = create_layout()
 
 register_callbacks(app)
