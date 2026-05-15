@@ -376,13 +376,14 @@ def register_callbacks(app):
         Input("play-speed", "data"),
     )
     def update_play_button_label(playing, speed):
-        if not playing:
-            return "▷ Play"
+        return "▷ Play"
+        # if not playing:
+        #     return "▷ Play"
 
-        if speed == 1:
-            return "▷ x2 Speed"
+        # if speed == 1:
+        #     return "▷ x2 Speed"
 
-        return "▷ x1 Speed"
+        # return "▷ x1 Speed"
 
     @app.callback(
         Output("play-state", "data"),
@@ -410,12 +411,11 @@ def register_callbacks(app):
             return False, 1, True, 600
 
         if trigger == "play-button":
-            if not playing:
-                return True, 1, False, 600
+            return True, 1, False, 600
 
-            new_speed = 2 if speed == 1 else 1
-            interval = 400 if new_speed == 2 else 600
-            return True, new_speed, False, interval
+            # new_speed = 2 if speed == 1 else 1
+            # interval = 600 if new_speed == 2 else 600
+            # return True, 1, False, interval
 
         return playing, speed, not playing, 600
 
