@@ -4,6 +4,8 @@ import dash_bootstrap_components as dbc
 from data.example_graphs import EXAMPLE_GRAPHS
 
 
+ANALYSIS_SIZES = [5, 15, 25, 35, 45, 55, 65, 75, 85, 95, 100]
+
 SIDEBAR_STYLE = {
     "position": "sticky",
     "top": "0",
@@ -37,6 +39,7 @@ BUTTON_STYLE = {
     "fontWeight": "500",
 }
 
+
 def create_sidebar(collapsed=False):
     return html.Div(
         [
@@ -45,7 +48,6 @@ def create_sidebar(collapsed=False):
                 "Uproszczony algorytm PageRank",
                 className="text-muted mb-4",
             ),
-            # html.H6("Spis treści", className="text-uppercase text-muted"),
             dbc.Button(
                 "☰  Spis treści",
                 id="collapse-button",
@@ -61,20 +63,22 @@ def create_sidebar(collapsed=False):
                         dbc.NavLink("Graf", href="#section-network", external_link=True, style=NAV_LINK_STYLE),
                         dbc.NavLink("Wektor PageRank", href="#section-bar", external_link=True, style=NAV_LINK_STYLE),
                         dbc.NavLink("Zbieżność", href="#section-convergence", external_link=True, style=NAV_LINK_STYLE),
+                        dbc.NavLink("Wnioski lokalne", href="#section-analysis-local", external_link=True, style=NAV_LINK_STYLE),
                         dbc.NavLink("Macierz przejścia", href="#section-matrix", external_link=True, style=NAV_LINK_STYLE),
                         dbc.NavLink("Tabela iteracji", href="#section-table", external_link=True, style=NAV_LINK_STYLE),
-                        dbc.NavLink("Analiza", href="#section-analysis", external_link=True, style=NAV_LINK_STYLE), 
+                        dbc.NavLink("Analiza globalna", href="#section-analysis-global", external_link=True, style=NAV_LINK_STYLE),
                     ],
                     vertical=True,
                     pills=True,
                     className="mb-4",
-            ), id="collapse",
-            is_open=False,),
+                ),
+                id="collapse",
+                is_open=False,
+            ),
             html.Hr(),
             html.H6("Dane", className="text-uppercase text-muted"),
             html.P(
-                "Korzystamy z domyślnego zbioru grafów oferowanego przez bibliotekę NetworkX.",
-                # "Na razie korzystamy z domyślnego zbioru grafów. Później można tu dodać upload danych.",
+                "Korzystamy z domyślnego zbioru przykładowych grafów. Możesz przełączać ich strukturę i obserwować wpływ parametrów na zbieżność.",
                 className="small text-muted mb-3",
             ),
             html.Label("Wybierz graf:", className="fw-semibold"),
@@ -108,82 +112,78 @@ def create_sidebar(collapsed=False):
             ),
             html.Br(),
             html.Div(
-            [
-                # Play / Stop
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            dbc.Button(
-                                "▷  Play",
-                                id="play-button",
-                                n_clicks=0,
-                                style=BUTTON_STYLE,
-                                className="w-100",
+                [
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                dbc.Button(
+                                    "▷  Play",
+                                    id="play-button",
+                                    n_clicks=0,
+                                    style=BUTTON_STYLE,
+                                    className="w-100",
+                                ),
+                                width=6,
                             ),
-                            width=6,
-                        ),
-                        dbc.Col(
-                            dbc.Button(
-                                "||  Stop",
-                                id="stop-button",
-                                n_clicks=0,
-                                style=BUTTON_STYLE,
-                                className="w-100",
+                            dbc.Col(
+                                dbc.Button(
+                                    "||  Stop",
+                                    id="stop-button",
+                                    n_clicks=0,
+                                    style=BUTTON_STYLE,
+                                    className="w-100",
+                                ),
+                                width=6,
                             ),
-                            width=6,
-                        ),
-                    ],
-                    className="mb-2",
-                ),
-
-                # Prev / Next
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            dbc.Button(
-                                "❮❮  Poprzedni",
-                                id="prev-button",
-                                n_clicks=0,
-                                style=BUTTON_STYLE,
-                                className="w-100",
+                        ],
+                        className="mb-2",
+                    ),
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                dbc.Button(
+                                    "❮❮  Poprzedni",
+                                    id="prev-button",
+                                    n_clicks=0,
+                                    style=BUTTON_STYLE,
+                                    className="w-100",
+                                ),
+                                width=6,
                             ),
-                            width=6,
-                        ),
-                        dbc.Col(
-                            dbc.Button(
-                                "Następny  ❯❯",
-                                id="next-button",
-                                n_clicks=0,
-                                style=BUTTON_STYLE,
-                                className="w-100",
+                            dbc.Col(
+                                dbc.Button(
+                                    "Następny  ❯❯",
+                                    id="next-button",
+                                    n_clicks=0,
+                                    style=BUTTON_STYLE,
+                                    className="w-100",
+                                ),
+                                width=6,
                             ),
-                            width=6,
-                        ),
-                    ],
-                    className="mb-2",
-                ),
-
-                # Reset 
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            dbc.Button(
-                                "Reset",
-                                id="reset-button",
-                                n_clicks=0,
-                                style=BUTTON_STYLE,
-                                className="w-100",
-                            ),
-                            width={"size": 12},  
-                        )
-                    ]
-                ),
-            ],
-            className="w-100",
-        )
+                        ],
+                        className="mb-2",
+                    ),
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                dbc.Button(
+                                    "Reset",
+                                    id="reset-button",
+                                    n_clicks=0,
+                                    style=BUTTON_STYLE,
+                                    className="w-100",
+                                ),
+                                width=12,
+                            )
+                        ]
+                    ),
+                ],
+                className="w-100",
+            ),
         ],
         style=SIDEBAR_STYLE,
     )
+
 
 
 def create_main_content():
@@ -191,16 +191,19 @@ def create_main_content():
         [
             dcc.Store(id="current-step", data=0),
             dcc.Store(id="play-speed", data=1),
-
             dcc.Store(id="confetti-trigger", data=False),
             dcc.Store(id="has-converged", data=False),
-
+            dcc.Store(id="analysis-play-state", data=False),
             html.Div(id="dummy-output", style={"display": "none"}),
-
             dcc.Interval(
                 id="step-interval",
-                interval=800,  
-                disabled=True
+                interval=800,
+                disabled=True,
+            ),
+            dcc.Interval(
+                id="analysis-step-interval",
+                interval=900,
+                disabled=True,
             ),
             dcc.Store(id="play-state", data=False),
 
@@ -209,7 +212,7 @@ def create_main_content():
                 dbc.CardBody(
                     [
                         html.H4("Parametry i stan iteracji", className="card-title"),
-                        html.Div( 
+                        html.Div(
                             id="iteration-info",
                             style={"fontSize": "18px", "marginBottom": "0"},
                         ),
@@ -220,44 +223,44 @@ def create_main_content():
             ),
 
             html.Div(id="section-network"),
-html.Div(id="section-bar"),
-dbc.Row(
-    [
-        dbc.Col(
-            dbc.Card(
-                dbc.CardBody(
-                    [
-                        html.H4("Graf i aktualne wartości PageRank", className="card-title"),
-                        dcc.Graph(
-                            id="network-graph",
-                            style={"height": "380px"},
+            html.Div(id="section-bar"),
+            dbc.Row(
+                [
+                    dbc.Col(
+                        dbc.Card(
+                            dbc.CardBody(
+                                [
+                                    html.H4("Graf i aktualne wartości PageRank", className="card-title"),
+                                    dcc.Graph(
+                                        id="network-graph",
+                                        style={"height": "380px"},
+                                    ),
+                                ]
+                            ),
+                            style=CARD_STYLE,
+                            className="mb-4 h-100",
                         ),
-                    ]
-                ),
-                style=CARD_STYLE,
-                className="mb-4 h-100",
-            ),
-            md=6,
-        ),
-        dbc.Col(
-            dbc.Card(
-                dbc.CardBody(
-                    [
-                        html.H4("Wektor PageRank", className="card-title"),
-                        dcc.Graph(
-                            id="bar-chart",
-                            style={"height": "380px"},
+                        md=6,
+                    ),
+                    dbc.Col(
+                        dbc.Card(
+                            dbc.CardBody(
+                                [
+                                    html.H4("Wektor PageRank", className="card-title"),
+                                    dcc.Graph(
+                                        id="bar-chart",
+                                        style={"height": "380px"},
+                                    ),
+                                ]
+                            ),
+                            style=CARD_STYLE,
+                            className="mb-4 h-100",
                         ),
-                    ]
-                ),
-                style=CARD_STYLE,
-                className="mb-4 h-100",
+                        md=6,
+                    ),
+                ],
+                className="g-4",
             ),
-            md=6,
-        ),
-    ],
-    className="g-4",
-),
 
             html.Div(id="section-convergence"),
             dbc.Card(
@@ -268,6 +271,18 @@ dbc.Row(
                     ]
                 ),
                 style=CARD_STYLE,
+                className="mb-4",
+            ),
+
+            html.Div(id="section-analysis-local"),
+            dbc.Card(
+                dbc.CardBody(
+                    [
+                        html.H3("Wnioski dla aktualnego grafu", className="card-title mb-3"),
+                        html.Div(id="local-analysis-text", className="text-muted"),
+                    ]
+                ),
+                style={**CARD_STYLE, "border": "1px solid #ede9f7", "backgroundColor": "#fcfaff"},
                 className="mb-4",
             ),
 
@@ -295,28 +310,19 @@ dbc.Row(
                 className="mb-4",
             ),
 
-            html.Div(id="section-analysis"),
-
+            html.Div(id="section-analysis-global"),
             dbc.Card(
                 dbc.CardBody(
                     [
-                        html.H3(
-                            "Analiza wpływu rozmiaru sieci",
-                            className="card-title mb-4",
-                        ),
+                        html.H3("Analiza globalna dla różnych skal grafów", className="card-title mb-4"),
 
                         dbc.Row(
                             [
-
                                 dbc.Col(
                                     dbc.Card(
                                         dbc.CardBody(
                                             [
-                                                html.H5(
-                                                    "Wykres 3D zbieżności",
-                                                    className="card-title",
-                                                ),
-
+                                                html.H5("Wykres 3D zbieżności", className="card-title"),
                                                 dcc.Graph(
                                                     id="analysis-3d-graph",
                                                     style={"height": "420px"},
@@ -328,16 +334,11 @@ dbc.Row(
                                     ),
                                     md=6,
                                 ),
-
                                 dbc.Col(
                                     dbc.Card(
                                         dbc.CardBody(
                                             [
-                                                html.H5(
-                                                    "Iteracja vs różnica",
-                                                    className="card-title",
-                                                ),
-
+                                                html.H5("Iteracja vs różnica", className="card-title"),
                                                 dcc.Graph(
                                                     id="analysis-convergence-graph",
                                                     style={"height": "420px"},
@@ -350,46 +351,109 @@ dbc.Row(
                                     md=6,
                                 ),
                             ],
-                            className="g-4 mb-4",
+                            className="g-4 mb-3",
                         ),
 
-                        html.P(
-                            """
-                            TODO: Dodać opis analizy
-                            """,
-                            className="text-muted",
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        html.Label("Rozmiar sieci w analizie globalnej", className="fw-semibold"),
+                                        dcc.Slider(
+                                            id="analysis-size-slider",
+                                            min=min(ANALYSIS_SIZES),
+                                            max=max(ANALYSIS_SIZES),
+                                            step=None,
+                                            value=ANALYSIS_SIZES[0],
+                                            marks={size: str(size) for size in ANALYSIS_SIZES},
+                                            className="mb-3",
+                                        ),
+                                    ],
+                                    md=8,
+                                ),
+                                dbc.Col(
+                                    [
+                                        html.Label("Sterowanie", className="fw-semibold"),
+                                        dbc.Row(
+                                            [
+                                                dbc.Col(
+                                                    dbc.Button(
+                                                        "▷ Play",
+                                                        id="analysis-play-button",
+                                                        n_clicks=0,
+                                                        style=BUTTON_STYLE,
+                                                        className="w-100",
+                                                    ),
+                                                    width=6,
+                                                ),
+                                                dbc.Col(
+                                                    dbc.Button(
+                                                        "|| Stop",
+                                                        id="analysis-stop-button",
+                                                        n_clicks=0,
+                                                        style=BUTTON_STYLE,
+                                                        className="w-100",
+                                                    ),
+                                                    width=6,
+                                                ),
+                                            ],
+                                            className="g-2",
+                                        ),
+                                    ],
+                                    md=4,
+                                ),
+                            ],
+                            className="align-items-end mb-2",
                         ),
 
-                        html.H5(
-                            "Tabela danych analitycznych",
-                            className="mb-3",
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    dbc.Checklist(
+                                        id="sync-analysis-size-switch",
+                                        options=[
+                                            {
+                                                "label": " Dopasuj rozmiar analizy do liczby węzłów aktualnego grafu",
+                                                "value": "sync",
+                                            }
+                                        ],
+                                        value=[],
+                                        switch=True,
+                                        className="mt-1 mb-4",
+                                    ),
+                                    width=12,
+                                ),
+                            ]
                         ),
 
+                        dbc.Card(
+                            dbc.CardBody(
+                                [
+                                    html.H5("Wnioski globalne", className="card-title"),
+                                    html.Div(id="global-analysis-text", className="text-muted"),
+                                ]
+                            ),
+                            style={"border": "1px solid #ede9f7", "borderRadius": "14px", "backgroundColor": "#fcfaff"},
+                            className="mb-4",
+                        ),
+
+                        html.H5("Tabela danych analitycznych", className="mb-3"),
                         dash_table.DataTable(
                             id="analysis-table",
-
                             page_size=12,
-
                             sort_action="native",
-
                             filter_action="native",
-
-                            style_table={
-                                "overflowX": "auto",
-                            },
-
+                            style_table={"overflowX": "auto"},
                             style_cell={
                                 "textAlign": "center",
                                 "padding": "8px",
                                 "fontFamily": "Arial",
                                 "fontSize": "14px",
                             },
-
                             style_header={
                                 "backgroundColor": "#f1f3f5",
                                 "fontWeight": "bold",
                             },
-
                             style_data={
                                 "backgroundColor": "white",
                                 "border": "1px solid #dee2e6",
@@ -405,6 +469,7 @@ dbc.Row(
     )
 
 
+
 def create_layout():
     return dbc.Container(
         [
@@ -416,7 +481,6 @@ def create_layout():
                 className="g-0",
             ),
             dcc.Store(id="confetti-fire", data=0),
-            
         ],
         fluid=True,
         className="px-0",
