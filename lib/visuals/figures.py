@@ -13,11 +13,11 @@ def build_network_figure(nodes, edges, ranks):
     graph.add_edges_from(edges)
 
     pos = nx.spring_layout(
-            graph,
-            seed=42,
-            k=0.9,          
-            iterations=80   
-        )
+        graph,
+        seed=42,
+        k=0.9,
+        iterations=80
+    )
 
     edge_x = []
     edge_y = []
@@ -47,9 +47,9 @@ def build_network_figure(nodes, edges, ranks):
         node_x.append(x)
         node_y.append(y)
         node_text.append(
-                            f"<b>{node}</b><br>"
-                            f"PageRank: {ranks[i]:.6f}"
-                        )
+            f"<b>{node}</b><br>"
+            f"PageRank: {ranks[i]:.6f}"
+        )
         node_sizes.append(28 + ranks[i] * 140)
 
     cmin = float(np.min(ranks))
@@ -80,8 +80,46 @@ def build_network_figure(nodes, edges, ranks):
     )
 
     fig = go.Figure(data=[edge_trace, node_trace])
+
+    for source, target in graph.edges():
+        x0, y0 = pos[source]
+        x1, y1 = pos[target]
+
+        dx = x1 - x0
+        dy = y1 - y0
+        length = (dx**2 + dy**2) ** 0.5
+
+        if length == 0:
+            continue
+
+        # lekkie odsunięcie początku i końca strzałki od środka węzłów
+        start_offset = 0.08
+        end_offset = 0.10
+
+        xs = x0 + dx / length * start_offset
+        ys = y0 + dy / length * start_offset
+        xe = x1 - dx / length * end_offset
+        ye = y1 - dy / length * end_offset
+
+        fig.add_annotation(
+            x=xe,
+            y=ye,
+            ax=xs,
+            ay=ys,
+            xref="x",
+            yref="y",
+            axref="x",
+            ayref="y",
+            showarrow=True,
+            arrowhead=2,
+            arrowsize=1.1,
+            arrowwidth=1.2,
+            arrowcolor="rgba(120,120,140,0.55)",
+            opacity=0.9,
+        )
+
     fig.update_layout(
-        title="Graf i aktualne wartości PageRank",
+        title="Graf skierowany i aktualne wartości PageRank",
         showlegend=False,
         margin=dict(l=20, r=20, t=50, b=20),
         paper_bgcolor="rgba(0,0,0,0)",
@@ -89,6 +127,7 @@ def build_network_figure(nodes, edges, ranks):
         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
     )
+
     return fig
 
 def build_bar_figure(nodes, ranks):
