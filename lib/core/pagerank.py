@@ -4,6 +4,7 @@ import numpy as np
 
 Edge = Tuple[str, str]
 
+
 @dataclass
 class PageRankStep:
     iteration: int
@@ -18,16 +19,27 @@ class PageRankComparison:
     reference_vector: Optional[np.ndarray]
     error: Optional[str] = None
 
+
+@dataclass
+class EigenResult:
+    eigenvalue: float
+    eigenvector: np.ndarray
+
+
 def build_nodes(edges: List[Edge]) -> List[str]:
     """
     Zwraca posortowaną listę unikalnych węzłów na podstawie krawędzi.
     """
     return sorted({node for edge in edges for node in edge})
 
+
 def build_transition_matrix(nodes: List[str], edges: List[Edge]) -> np.ndarray:
     """
-    Buduje macierz przejścia M, gdzie M[i, j] oznacza prawdopodobieństwo przejścia z węzła j do węzła i.
-    Jeśli węzeł nie ma wyjść (dangling node), to jego kolumna jest wypełniana równomiernie.
+    Buduje macierz przejścia M, gdzie M[i, j] oznacza prawdopodobieństwo
+    przejścia z węzła j do węzła i.
+
+    Jeśli węzeł nie ma wyjść (dangling node), jego kolumna jest
+    wypełniana równomiernie.
     """
     n = len(nodes)
     index = {node: i for i, node in enumerate(nodes)}
@@ -48,30 +60,62 @@ def build_transition_matrix(nodes: List[str], edges: List[Edge]) -> np.ndarray:
             for target in targets:
                 target_idx = index[target]
                 matrix[target_idx, source_idx] = prob
+
     return matrix
 
-def pagerank_iterations(matrix: np.ndarray, damping: float = 0.85, max_iter: int = 20, tol: float = 1e-6) -> List[PageRankStep]:
+
+def build_google_matrix(matrix: np.ndarray, damping: float = 0.85) -> np.ndarray:
     """
-    Iteracyjnie oblicza PageRank:
-        r_(k+1) = d * M * r_k + (1-d) * v
+    Buduje macierz Google:
+        G = d * M + (1-d) * E
 
-    gdzie:
-    - M to macierz przejścia,
-    - d to współczynnik tłumienia,
-    - v to wektor teleportacji (tu: równomierny).
+    gdzie E to macierz teleportacji z równym prawdopodobieństwem przejścia
+    do każdego węzła.
+    """
+    n = matrix.shape[0]
+    teleport_matrix = np.ones((n, n), dtype=float) / n
+    return damping * matrix + (1.0 - damping) * teleport_matrix
 
-    Zwraca listę kroków, żeby można było śledzić każdą iterację.
+
+def estimate_dominant_eigenvalue(matrix: np.ndarray, vector: np.ndarray) -> float:
+    """
+    Przybliża dominującą wartość własną metodą ilorazu Rayleigha.
+    """
+    numerator = float(vector.T @ (matrix @ vector))
+    denominator = float(vector.T @ vector)
+
+    if abs(denominator) < 1e-15:
+        return float("nan")
+
+    return numerator / denominator
+
+
+def power_iteration_steps(
+    matrix: np.ndarray,
+    max_iter: int = 20,
+    tol: float = 1e-6,
+) -> List[PageRankStep]:
+    """
+    Iteracyjnie przybliża dominujący wektor własny macierzy.
+
+    Dla macierzy Google w przypadku PageRank interesuje nas ustalony
+    rozkład prawdopodobieństwa, więc po każdym kroku normalizujemy
+    wektor w normie L1 (suma elementów = 1).
     """
     n = matrix.shape[0]
     rank = np.ones(n, dtype=float) / n
-    teleport = np.ones(n, dtype=float) / n
 
     steps: List[PageRankStep] = [
         PageRankStep(iteration=0, vector=rank.copy(), diff=0.0)
     ]
 
     for iteration in range(1, max_iter + 1):
-        new_rank = damping * (matrix @ rank) + (1 - damping) * teleport
+        new_rank = matrix @ rank
+
+        total = np.sum(new_rank)
+        if total > 0:
+            new_rank = new_rank / total
+
         diff = np.linalg.norm(new_rank - rank, ord=1)
 
         steps.append(
@@ -81,20 +125,46 @@ def pagerank_iterations(matrix: np.ndarray, damping: float = 0.85, max_iter: int
                 diff=diff,
             )
         )
+
         rank = new_rank
 
         if diff < tol:
             break
+
     return steps
 
-def compute_pagerank_from_edges(edges: List[Edge], damping: float = 0.85, max_iter: int = 20, tol: float = 1e-6):
+
+def pagerank_iterations(
+    matrix: np.ndarray,
+    damping: float = 0.85,
+    max_iter: int = 20,
+    tol: float = 1e-6,
+) -> List[PageRankStep]:
+    """
+    Oblicza PageRank iteracyjnie przez zastosowanie power iteration
+    do macierzy Google.
+    """
+    google_matrix = build_google_matrix(matrix, damping=damping)
+    return power_iteration_steps(
+        matrix=google_matrix,
+        max_iter=max_iter,
+        tol=tol,
+    )
+
+
+def compute_pagerank_from_edges(
+    edges: List[Edge],
+    damping: float = 0.85,
+    max_iter: int = 20,
+    tol: float = 1e-6,
+):
     """
     Funkcja pomocnicza:
-    z listy krawędzi buduje węzły, macierz i liczy iteracje.
+    z listy krawędzi buduje węzły, macierz i liczy iteracje PageRank.
 
     Zwraca:
     - nodes
-    - matrix
+    - matrix przejścia M
     - steps
     """
     nodes = build_nodes(edges)
@@ -106,6 +176,36 @@ def compute_pagerank_from_edges(edges: List[Edge], damping: float = 0.85, max_it
         tol=tol,
     )
     return nodes, matrix, steps
+
+
+def compute_eigen_from_edges(
+    edges: List[Edge],
+    damping: float = 0.85,
+    max_iter: int = 20,
+    tol: float = 1e-6,
+) -> EigenResult:
+    """
+    Dodatkowa funkcja pomocnicza do części teoretycznej:
+    zwraca przybliżony dominujący wektor własny i wartość własną
+    macierzy Google.
+    """
+    nodes = build_nodes(edges)
+    transition_matrix = build_transition_matrix(nodes, edges)
+    google_matrix = build_google_matrix(transition_matrix, damping=damping)
+
+    steps = power_iteration_steps(
+        matrix=google_matrix,
+        max_iter=max_iter,
+        tol=tol,
+    )
+
+    eigenvector = steps[-1].vector
+    eigenvalue = estimate_dominant_eigenvalue(google_matrix, eigenvector)
+
+    return EigenResult(
+        eigenvalue=eigenvalue,
+        eigenvector=eigenvector,
+    )
 
 
 def compare_with_networkx(
